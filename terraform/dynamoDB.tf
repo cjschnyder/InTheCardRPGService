@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "users" {
-  name           = "itc-users"
+  name           = "InTheCardsUsers"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "userId"
 
@@ -39,7 +39,7 @@ resource "aws_dynamodb_table" "users" {
 }
 
 resource "aws_dynamodb_table" "characters" {
-  name           = "itc-characters"
+  name           = "InTheCardsCharacters"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "characterId"
   range_key       = "userId"
