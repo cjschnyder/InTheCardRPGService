@@ -1,0 +1,80 @@
+type User {
+  userId: ID!
+  email: String!
+  username: String!
+  createdAt: AWSDateTime!
+  lastLogin: AWSDateTime
+}
+
+type Character {
+  characterId: ID!
+  userId: ID!
+  name: String!
+  species: String!
+  starterClass: String!
+  priestOption: String
+  gear: AWSJSON
+  hand: AWSJSON
+  discard: AWSJSON
+  discardRest: AWSJSON
+  customCards: AWSJSON
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Query {
+  getCharacter(characterId: ID!): Character
+  listCharacters: [Character]
+  getUser(userId: ID!): User
+}
+
+type Mutation {
+  createCharacter(
+    name: String!
+    species: String!
+    starterClass: String!
+    priestOption: String
+    gear: AWSJSON
+    hand: AWSJSON
+    discard: AWSJSON
+    discardRest: AWSJSON
+    customCards: AWSJSON
+  ): Character
+
+  updateCharacter(
+    characterId: ID!
+    name: String
+    species: String
+    starterClass: String
+    priestOption: String
+    gear: AWSJSON
+    hand: AWSJSON
+    discard: AWSJSON
+    discardRest: AWSJSON
+    customCards: AWSJSON
+  ): Character
+
+  deleteCharacter(characterId: ID!): Character
+
+  createUser(
+    email: String!
+    username: String!
+  ): User
+}
+
+type Subscription {
+  onCreateCharacter(userId: ID!): Character
+    @aws_subscribe(mutations: ["createCharacter"])
+  
+  onUpdateCharacter(userId: ID!): Character
+    @aws_subscribe(mutations: ["updateCharacter"])
+  
+  onDeleteCharacter(userId: ID!): Character
+    @aws_subscribe(mutations: ["deleteCharacter"])
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}

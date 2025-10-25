@@ -53,7 +53,8 @@ resource "aws_cognito_user_pool" "in_the_cards_user_pool" {
   user_pool_add_ons {
     advanced_security_mode = "ENFORCED"
   }
-  mfa_configuration = "OPTIONAL"
+  mfa_configuration = "OFF"
+  
   admin_create_user_config {
     allow_admin_create_user_only = false
   }
@@ -67,7 +68,7 @@ resource "aws_cognito_user_pool" "in_the_cards_user_pool" {
 
 resource "aws_cognito_user_pool_client" "in_the_cards_web_client" {
   name         = "InTheCardsWebClient"
-  user_pool_id = aws_cognito_user_pool.main.id
+  user_pool_id = aws_cognito_user_pool.in_the_cards_user_pool.id
   generate_secret = false
 
   allowed_oauth_flows_user_pool_client = true
@@ -125,20 +126,17 @@ locals {
   google_oauth_credentials = jsondecode(data.aws_secretsmanager_secret_version.google_oauth.secret_string)
 }
 
-# Google Identity Provider
 resource "aws_cognito_identity_provider" "google" {
-  user_pool_id  = aws_cognito_user_pool.main.id
+  user_pool_id  = aws_cognito_user_pool.in_the_cards_user_pool.id
   provider_name = "Google"
   provider_type = "Google"
 
-  # Credentials pulled from AWS Secrets Manager
   provider_details = {
     authorize_scopes = "email profile openid"
     client_id        = local.google_oauth_credentials.client_id
     client_secret    = local.google_oauth_credentials.client_secret
   }
 
-  # Map Google attributes to Cognito attributes
   attribute_mapping = {
     email    = "email"
     name     = "name"
@@ -146,46 +144,152 @@ resource "aws_cognito_identity_provider" "google" {
   }
 }
 
-# User Pool Domain (required for Google OAuth)
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = "itc-rpg-${var.environment}-${random_string.domain_suffix.result}"
-  user_pool_id = aws_cognito_user_pool.main.id
+  domain       = "inthecards-rpg"
+  user_pool_id = aws_cognito_user_pool.in_the_cards_user_pool.id
 }
 
-# Random string for unique domain name
-resource "random_string" "domain_suffix" {
-  length  = 8
-  special = false
-  upper   = false
+resource "aws_cognito_identity_pool" "in_the_cards_identity_pool" {
+  identity_pool_name               = "InTheCardsIdentityPool"
+  allow_unauthenticated_identities = false
+  allow_classic_flow               = false
+
+  cognito_identity_providers {
+    client_id               = aws_cognito_user_pool_client.in_the_cards_web_client.id
+    provider_name           = aws_cognito_user_pool.in_the_cards_user_pool.endpoint
+    server_side_token_check = false
+  }
+
+  supported_login_providers = {
+    "accounts.google.com" = local.google_oauth_credentials.client_id
+  }
+
+  tags = {
+    Name      = "InTheCards Identity Pool"
+    Project   = "InTheCardsRPG"
+    ManagedBy = "Terraform"
+  }
 }
 
-# Outputs
-output "user_pool_id" {
-  description = "ID of the Cognito User Pool"
-  value       = aws_cognito_user_pool.in_the_cards_user_pool.id
+resource "aws_iam_role" "authenticated_role" {
+  name = "InTheCardsCognitoAuthenticatedRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = "cognito-identity.amazonaws.com"
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "cognito-identity.amazonaws.com:aud" = aws_cognito_identity_pool.in_the_cards_identity_pool.id
+          }
+          "ForAnyValue:StringLike" = {
+            "cognito-identity.amazonaws.com:amr" = "authenticated"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name      = "InTheCards Authenticated Role"
+    Project   = "InTheCardsRPG"
+    ManagedBy = "Terraform"
+  }
 }
 
-output "user_pool_arn" {
-  description = "ARN of the Cognito User Pool"
-  value       = aws_cognito_user_pool.in_the_cards_user_pool.arn
+resource "aws_iam_role_policy" "authenticated_dyanmodb_policy" {
+  name = "InTheCardsAuthenticatedPolicy"
+  role = aws_iam_role.authenticated_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = [
+          aws_dynamodb_table.users.arn,
+          "${aws_dynamodb_table.users.arn}/index/*",
+          aws_dynamodb_table.characters.arn,
+          "${aws_dynamodb_table.characters.arn}/index/*"
+        ]
+        Condition = {
+          "ForAllValues:StringEquals" = {
+            "dynamodb:LeadingKeys" = ["$${cognito-identity.amazonaws.com:sub}"]
+          }
+        }
+      }
+    ]
+  })
 }
 
-output "user_pool_endpoint" {
-  description = "Endpoint of the Cognito User Pool"
-  value       = aws_cognito_user_pool.in_the_cards_user_pool.endpoint
+resource "aws_iam_role" "unauthenticated_role" {
+  name = "InTheCards_Cognito_Unauthenticated_Role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = "cognito-identity.amazonaws.com"
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "cognito-identity.amazonaws.com:aud" = aws_cognito_identity_pool.in_the_cards_identity_pool.id
+          }
+          "ForAnyValue:StringLike" = {
+            "cognito-identity.amazonaws.com:amr" = "unauthenticated"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name      = "InTheCards Unauthenticated Role"
+    Project   = "InTheCardsRPG"
+    ManagedBy = "Terraform"
+  }
 }
 
-output "user_pool_client_id" {
-  description = "ID of the User Pool Client"
-  value       = aws_cognito_user_pool_client.web_client.id
+resource "aws_iam_role_policy" "unauthenticated_policy" {
+  name = "InTheCards_Unauthenticated_Policy"
+  role = aws_iam_role.unauthenticated_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "mobileanalytics:PutEvents",
+          "cognito-sync:*"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
 }
 
-output "cognito_domain" {
-  description = "Cognito domain for OAuth flows"
-  value       = aws_cognito_user_pool_domain.in_the_cards_user_pool.domain
-}
+resource "aws_cognito_identity_pool_roles_attachment" "attach_roles" {
+  identity_pool_id = aws_cognito_identity_pool.in_the_cards_identity_pool.id
 
-output "cognito_oauth_url" {
-  description = "Base URL for Cognito OAuth endpoints"
-  value       = "https://${aws_cognito_user_pool_domain.in_the_cards_user_pool.domain}.auth.${var.aws_region}.amazoncognito.com"
+  roles = {
+    authenticated   = aws_iam_role.authenticated_role.arn
+    unauthenticated = aws_iam_role.unauthenticated_role.arn
+  }
 }
