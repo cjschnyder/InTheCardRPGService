@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "users" {
-  name           = "InTheCardsUsers"
+  name           = "LooterUsers"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "userId"
 
@@ -33,13 +33,13 @@ resource "aws_dynamodb_table" "users" {
   }
 
   tags = {
-    Name        = "In The Cards Users Table"
+    Name        = "Looter Users Table"
     ManagedBy   = "Terraform"
   }
 }
 
 resource "aws_dynamodb_table" "characters" {
-  name           = "InTheCardsCharacters"
+  name           = "LooterCharacters"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "characterId"
   range_key       = "userId"
@@ -75,7 +75,7 @@ resource "aws_dynamodb_table" "characters" {
   }
 
   tags = {
-    Name        = "In The Cards Characters Table"
+    Name        = "Looter Characters Table"
     ManagedBy   = "Terraform"
   }
 }

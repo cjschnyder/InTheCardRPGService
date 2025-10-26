@@ -1,5 +1,5 @@
 resource "aws_appsync_graphql_api" "in_the_cards_api" {
-  name                = "InTheCardsGraphQLAPI"
+  name                = "LooterAPI"
   authentication_type = "AMAZON_COGNITO_USER_POOLS"
 
   user_pool_config {
@@ -16,14 +16,14 @@ resource "aws_appsync_graphql_api" "in_the_cards_api" {
   schema = file("${path.module}/resources/schema.graphql")
 
   tags = {
-    Name      = "InTheCards GraphQL API"
-    Project   = "InTheCardsRPG"
+    Name      = "Looter API"
+    Project   = "Looter TTRPG"
     ManagedBy = "Terraform"
   }
 }
 
 resource "aws_iam_role" "appsync_dynamodb" {
-  name = "InTheCardsAppSyncDynamoDBRole"
+  name = "LooterAppSyncDynamoDBRole"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -39,14 +39,14 @@ resource "aws_iam_role" "appsync_dynamodb" {
   })
 
   tags = {
-    Name      = "InTheCards AppSync DynamoDB Role"
-    Project   = "InTheCardsRPG"
+    Name      = "Looter AppSync DynamoDB Role"
+    Project   = "Looter TTRPG"
     ManagedBy = "Terraform"
   }
 }
 
 resource "aws_iam_role_policy" "appsync_dynamodb_policy" {
-  name = "InTheCardsAppSyncDynamoDBPolicy"
+  name = "LooterAppSyncDynamoDBPolicy"
   role = aws_iam_role.appsync_dynamodb.id
 
   policy = jsonencode({
@@ -74,7 +74,7 @@ resource "aws_iam_role_policy" "appsync_dynamodb_policy" {
 }
 
 resource "aws_iam_role" "appsync_logs" {
-  name = "InTheCardsAppSyncLogsRole"
+  name = "LooterAppSyncLogsRole"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -90,14 +90,14 @@ resource "aws_iam_role" "appsync_logs" {
   })
 
   tags = {
-    Name      = "InTheCards AppSync Logs Role"
-    Project   = "InTheCardsRPG"
+    Name      = "Looter AppSync Logs Role"
+    Project   = "Looter TTRPG"
     ManagedBy = "Terraform"
   }
 }
 
 resource "aws_iam_role_policy" "appsync_logs_policy" {
-  name = "InTheCardsAppSyncLogsPolicy"
+  name = "LooterAppSyncLogsPolicy"
   role = aws_iam_role.appsync_logs.id
 
   policy = jsonencode({

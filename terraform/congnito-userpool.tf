@@ -1,5 +1,5 @@
 resource "aws_cognito_user_pool" "in_the_cards_user_pool" {
-  name = "InTheCardsUserPool"
+  name = "LooterUserPool"
 
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
@@ -40,8 +40,8 @@ resource "aws_cognito_user_pool" "in_the_cards_user_pool" {
   }
   verification_message_template {
     default_email_option = "CONFIRM_WITH_CODE"
-    email_subject        = "Your In The Cards RPG verification code"
-    email_message        = "Your verification code for In The Cards RPG is {####}"
+    email_subject        = "Your Looter account verification code"
+    email_message        = "Your verification code for Looter is {####}"
   }
   account_recovery_setting {
     recovery_mechanism {
@@ -60,14 +60,14 @@ resource "aws_cognito_user_pool" "in_the_cards_user_pool" {
   }
 
   tags = {
-    Name        = "InTheCards User Pool"
-    Project     = "InTheCardsRPG"
+    Name        = "Looter User Pool"
+    Project     = "Looter TTRPG"
     ManagedBy   = "Terraform"
   }
 }
 
 resource "aws_cognito_user_pool_client" "in_the_cards_web_client" {
-  name         = "InTheCardsWebClient"
+  name         = "LooterWebClient"
   user_pool_id = aws_cognito_user_pool.in_the_cards_user_pool.id
   generate_secret = false
 
@@ -145,12 +145,12 @@ resource "aws_cognito_identity_provider" "google" {
 }
 
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = "inthecards-rpg"
+  domain       = "looter-rpg"
   user_pool_id = aws_cognito_user_pool.in_the_cards_user_pool.id
 }
 
 resource "aws_cognito_identity_pool" "in_the_cards_identity_pool" {
-  identity_pool_name               = "InTheCardsIdentityPool"
+  identity_pool_name               = "LooterIdentityPool"
   allow_unauthenticated_identities = false
   allow_classic_flow               = false
 
@@ -165,14 +165,14 @@ resource "aws_cognito_identity_pool" "in_the_cards_identity_pool" {
   }
 
   tags = {
-    Name      = "InTheCards Identity Pool"
-    Project   = "InTheCardsRPG"
+    Name      = "Looter Identity Pool"
+    Project   = "Looter TTRPG"
     ManagedBy = "Terraform"
   }
 }
 
 resource "aws_iam_role" "authenticated_role" {
-  name = "InTheCardsCognitoAuthenticatedRole"
+  name = "LooterCognitoAuthenticatedRole"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -196,8 +196,8 @@ resource "aws_iam_role" "authenticated_role" {
   })
 
   tags = {
-    Name      = "InTheCards Authenticated Role"
-    Project   = "InTheCardsRPG"
+    Name      = "Looter Authenticated Role"
+    Project   = "Looter TTRPG"
     ManagedBy = "Terraform"
   }
 }
